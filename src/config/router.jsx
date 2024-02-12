@@ -15,7 +15,6 @@ function AppRouter() {
     const [user, setUser] = useState(false)
     useEffect(() => {
         onAuthStateChanged(auth, async (user) => {
-            console.log("user", user)
             if (user) {
                 const docRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(docRef);

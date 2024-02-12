@@ -32,7 +32,7 @@ function SignupPage() {
     const onSubmit = (data) => {
         createUserWithEmailAndPassword(auth, data.email, data.password)
             .then(async (res) => {
-                await setDoc(doc(db, "users", res.user.uid), data);
+                await setDoc(doc(db, "users", res.user.uid), { ...data, uid: res.user.uid });
                 navigate("/login")
                 reset()
             })
