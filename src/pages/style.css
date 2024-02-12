@@ -1,0 +1,9 @@
+.MuiGrid2-root {
+    height: 95vh;
+}
+
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
