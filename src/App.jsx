@@ -4,6 +4,7 @@ import User from './context/user'
 import store from './store'
 import { Provider } from 'react-redux'
 import { db, auth, doc, getDoc, onAuthStateChanged } from './config/firebase'
+import { BrowserRouter } from "react-router-dom";
 
 function App() {
   const [user, setUser] = useState({})
@@ -22,11 +23,13 @@ function App() {
     })
   }, [])
   return (
-    <Provider store={store}>
-      <User.Provider value={{ user }}>
-        <AppRouter />
-      </User.Provider>
-    </Provider>
+    <BrowserRouter>
+      <Provider store={store}>
+        <User.Provider value={{ user }}>
+          <AppRouter />
+        </User.Provider>
+      </Provider>
+    </BrowserRouter>
   )
 }
 

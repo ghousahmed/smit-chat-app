@@ -9,10 +9,14 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { set } from "date-fns";
 import { auth, db, getDoc, doc } from "./firebase";
+import { useLocation } from 'react-router-dom';
 
 
 function AppRouter() {
-    const [user, setUser] = useState(false)
+    const [user, setUser] = useState(false);
+    const location = useLocation();
+
+    console.log("location", location)
     useEffect(() => {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -27,17 +31,26 @@ function AppRouter() {
 
         })
     }, [])
+
+    const getCurrentRoute = () => {
+        return localStorage.getItem("currentRoute") || "/chat";
+    }
+
+    useEffect(() => {
+        if (location.pathname !== "/login" && location.pathname !== "/register") {
+            localStorage.setItem("currentRoute", `${location.pathname}${location.search}`)
+        }
+    }, [location])
+
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/add-product" element={<AddProduct />} />
-                <Route path="/chat" element={user ? <UserChat /> : <Navigate to={"/login"} />} />
-                <Route path="/login" element={user ? <Navigate to={"/chat"} /> : <LoginPage />} />
-                <Route path="/register" element={user ? <Navigate to={"/chat"} /> : <SignupPage />} />
-            </Routes>
-        </BrowserRouter>
+        <Routes>
+            <Route path="/" element={<Navigate to={"/login"} />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/add-product" element={<AddProduct />} />
+            <Route path="/chat" element={user ? <UserChat /> : <Navigate to={"/login"} />} />
+            <Route path="/login" element={user ? <Navigate to={getCurrentRoute()} /> : <LoginPage />} />
+            <Route path="/register" element={user ? <Navigate to={"/chat"} /> : <SignupPage />} />
+        </Routes>
     )
 }
 
