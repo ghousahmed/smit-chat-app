@@ -52,6 +52,7 @@ function Home() {
     return (
         <div>
             <h1>Home</h1>
+            <Link to={"/login"}>Chat</Link>
             <button onClick={() => setSkip(false)}>Fetch</button>
             <Link to={'/shop'}>Shop</Link>
             {isLoading && <h2>Loading....</h2>}

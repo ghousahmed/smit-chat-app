@@ -44,7 +44,7 @@ function AppRouter() {
 
     return (
         <Routes>
-            <Route path="/" element={<Navigate to={"/login"} />} />
+            <Route path="/" element={<login />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/add-product" element={<AddProduct />} />
             <Route path="/chat" element={user ? <UserChat /> : <Navigate to={"/login"} />} />

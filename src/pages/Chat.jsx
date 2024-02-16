@@ -24,6 +24,7 @@ import { IoMdLogOut } from "react-icons/io";
 import { auth, signOut, collection, getDocs, query, where, db, addDoc, onSnapshot, orderBy, serverTimestamp, updateDoc, doc, arrayUnion } from "../config/firebase";
 import { useSearchParams, useNavigate } from "react-router-dom"
 import User from "../context/user";
+import { useDebounce } from 'use-debounce';
 
 function UserChat() {
     const [messageInputValue, setMessageInputValue] = useState("")
@@ -36,8 +37,10 @@ function UserChat() {
     const [chatMessages, setChatMessages] = useState([])
     const [currentChat, setCurrentChat] = useState({})
     const user = useContext(User).user;
-    const [searchParms, setSearchParams] = useSearchParams()
+    const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
+    const chatIdParam = searchParams.get('chatId');
+    const [value] = useDebounce(messageInputValue, 2000);
 
     const logout = () => {
         signOut(auth)
@@ -86,7 +89,6 @@ function UserChat() {
     }, [sidebarVisible, setSidebarVisible])
 
     const getAllUsers = async () => {
-        const chatId = searchParms.get('chatId');
         const q = query(collection(db, "users"), where("email", "!=", user.email));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const users = [];
@@ -95,25 +97,67 @@ function UserChat() {
                 const randomColor = colors[Math.floor(Math.random() * colors.length)]
                 const user = { ...doc.data(), id: doc.id, bgColor: randomColor }
                 users.push(user)
-                if (chatId && chatId === doc.id) {
-                    setCurrentChat(user)
-                    searchParms.set("chatId", user.id)
-                    navigate(`/chat?${searchParms}`)
-                }
+
             });
             setChats(users)
-            if (!chatId) {
-                searchParms.set("chatId", users[0].id)
-                navigate(`/chat?${searchParms}`)
-                setCurrentChat(users[0])
-            }
         })
     }
+
+    const setTyping = async (typing) => {
+
+        const isTyping = currentChat?.isTyping?.[chatId(currentChat.uid)]?.[user.uid];
+        console.log("isTyping", isTyping)
+
+        if (!isTyping && typing) {
+            console.log("api call")
+            await updateDoc(doc(db, "users", currentChat.uid), {
+                [`isTyping.${chatId(currentChat.uid)}.${user.uid}`]: typing
+            });
+            await updateDoc(doc(db, "users", user.uid), {
+                [`isTyping.${chatId(currentChat.uid)}.${user.uid}`]: typing
+            });
+        }
+        if (!typing) {
+            await updateDoc(doc(db, "users", currentChat.uid), {
+                [`isTyping.${chatId(currentChat.uid)}.${user.uid}`]: typing
+            }); await updateDoc(doc(db, "users", user.uid), {
+                [`isTyping.${chatId(currentChat.uid)}.${user.uid}`]: typing
+            });
+        }
+
+    }
+
+
+    useEffect(() => {
+        if (messageInputValue) {
+            console.log("typing....")
+            setTyping(true)
+        }
+        if (value === messageInputValue) {
+            console.log("typing stopped")
+            setTyping(false)
+        }
+    }, [messageInputValue, value])
 
 
     useEffect(() => {
         getAllUsers()
     }, [])
+
+    useEffect(() => {
+        if (chats.length) {
+            const currentChatIndex = chats.findIndex(v => v.id === chatIdParam);
+            if (currentChatIndex !== -1) {
+                searchParams.set("chatId", chats[currentChatIndex].id)
+                navigate(`/chat?${searchParams}`)
+                setCurrentChat(chats[currentChatIndex])
+            } else {
+                searchParams.set("chatId", chats[0].id)
+                navigate(`/chat?${searchParams}`)
+                setCurrentChat(chats[0])
+            }
+        }
+    }, [chatIdParam, chats])
 
 
     const getAllMessages = async () => {
@@ -167,6 +211,9 @@ function UserChat() {
         return colors[Math.floor(Math.random() * colors.length)]
     }, [])
 
+
+    const isTyping = currentChat?.isTyping?.[chatId(currentChat.uid)]?.[currentChat.uid];
+
     return (
         <div style={{
             height: "98vh",
@@ -185,17 +232,17 @@ function UserChat() {
                     <ConversationList>
                         {chats.map((v) => {
                             return (
-                                <Conversation style={{ backgroundColor: searchParms.get("chatId") === v.id ? "#c6e3fa" : "" }} key={v.id} onClick={
+                                <Conversation style={{ backgroundColor: searchParams.get("chatId") === v.id ? "#c6e3fa" : "" }} key={v.id} onClick={
                                     () => {
                                         handleConversationClick()
                                         setCurrentChat(v)
-                                        searchParms.set("chatId", v.id)
-                                        navigate(`/chat?${searchParms}`)
+                                        searchParams.set("chatId", v.id)
+                                        navigate(`/chat?${searchParams}`)
                                     }
                                 }>
                                     <Avatar src={`https://ui-avatars.com/api/?background=random&color=fff&name=${v.full_name}`} name={v.full_name} status="available" style={conversationAvatarStyle} />
                                     <Conversation.Content name={v.full_name}
-                                        info={v?.lastMessages[chatId(v.id)]?.lastMessage || ""}
+                                        info={v?.lastMessages?.[chatId(v.id)]?.lastMessage || ""}
                                         style={conversationContentStyle} />
                                 </Conversation>
                             )
@@ -209,11 +256,16 @@ function UserChat() {
                         <Avatar src={`https://ui-avatars.com/api/?background=random&color=fff&name=${currentChat?.full_name}`} name={currentChat?.full_name} />
                         <ConversationHeader.Content userName={currentChat?.full_name} info="Active 10 mins ago" />
                     </ConversationHeader>
-                    <MessageList typingIndicator={<TypingIndicator content="Zoe is typing" />}>
-                        {/* <MessageSeparator content="Saturday, 30 November 2019" /> */}
+
+                    <MessageList typingIndicator={
+                        isTyping ?
+                            <TypingIndicator content={currentChat.full_name} /> : false
+                    }>
+
+
                         {chatMessages.map((v, i) => (
                             <Message key={i} model={v}>
-                                <Avatar src={"https://api.dicebear.com/7.x/fun-emoji/svg?seed=Zoe"} name="Zoe" />
+                                <Avatar src={`https://ui-avatars.com/api/?background=random&color=fff&name=${user.uid === v.sender ? user.full_name : currentChat?.full_name}`} name="Zoe" />
                                 <Message.Footer sentTime={formatDistance(new Date(v.sentTime), new Date(), { addSuffix: true })} />
                             </Message>
                         ))}

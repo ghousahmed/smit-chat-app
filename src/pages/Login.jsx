@@ -41,7 +41,7 @@ function LoginPage() {
     return (
         <Box sx={{ flexGrow: 1 }}>
             <Grid container>
-                <Grid className="login-container" columns={12} xs={4} xsOffset={4}>
+                <Grid className="login-container" columns={12} xs={12} md={12} lg={6} lgOffset={4}>
                     <Item>
                         <form onSubmit={handleSubmit(onSubmit)}>
                             <div style={{ padding: 10 }}>
