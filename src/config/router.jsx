@@ -42,16 +42,19 @@ function AppRouter() {
         }
     }, [location])
 
+
     return (
+        <>
         <Routes>
-            <Route path="/" element={<login />} />
+            <Route path="/" element={user ? <UserChat/> : <LoginPage/>} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/add-product" element={<AddProduct />} />
             <Route path="/chat" element={user ? <UserChat /> : <Navigate to={"/login"} />} />
             <Route path="/login" element={user ? <Navigate to={getCurrentRoute()} /> : <LoginPage />} />
             <Route path="/register" element={user ? <Navigate to={"/chat"} /> : <SignupPage />} />
         </Routes>
+        </>
     )
 }
 
-export default AppRouter;
+export default AppRouter;   
